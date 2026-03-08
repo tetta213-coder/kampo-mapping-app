@@ -53,7 +53,6 @@ plot_df['x'] = res[:, 0]
 plot_df['y'] = res[:, 1]
 
 # 6. Plotlyによる描画
-# color_discrete_map の値を安全な16進数カラーコードに変更
 fig = px.scatter(
     plot_df, x='x', y='y',
     text='formula',
@@ -65,17 +64,15 @@ fig = px.scatter(
         "不明": "#D3D3D3"    # 薄い灰色
     },
     hover_name='formula',
-    hover_data={
-        'x': False, 
-        'y': False, 
-        'formula': False, # ★ここをFalseにすることで "formula=..." の表示が消えます
-        '体力': True
-    },
-    height=700
+    # 表示したいデータを custom_data に放り込んでおきます
+    custom_data=['体力']
 )
 
-# マーカーとテキストの調整（白丸が消えないように外枠を黒くする）
+# ホバーの見た目を完全に上書き指定
 fig.update_traces(
+    # %{hovertext} は hover_name に指定した値（処方名）を表示します
+    # <extra></extra> をつけることで、横に出る「体力=実証」などのラベルを消せます
+    hovertemplate="<b>%{hovertext}</b><br>体力: %{customdata[0]}<extra></extra>",
     textposition='top center', 
     marker=dict(size=12, line=dict(width=1, color='black')),
     textfont=dict(family="HiraKakuPro-W3")
