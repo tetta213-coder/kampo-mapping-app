@@ -53,6 +53,7 @@ plot_df['x'] = res[:, 0]
 plot_df['y'] = res[:, 1]
 
 # 6. Plotlyによる描画
+# 5. Plotlyによる描画
 fig = px.scatter(
     plot_df, x='x', y='y',
     text='formula',
@@ -63,16 +64,18 @@ fig = px.scatter(
         "虚証": "#FFFFFF",   # 白
         "不明": "#D3D3D3"    # 薄い灰色
     },
-    hover_name='formula',
-    # 表示したいデータを custom_data に放り込んでおきます
-    custom_data=['体力']
+    # ここではあえて hover_name も hover_data も指定しません
 )
 
-# ホバーの見た目を完全に上書き指定
+# 【重要】Plotlyが勝手に作った各グループ（トレース）のホバーを強制的に書き換える
+for trace in fig.data:
+    # trace.name には「実証」「中間」などが入っています
+    # %{text} には 'formula' の値が入ります
+    # <extra></extra> で、横に出る「体力=実証」という箱を消去します
+    trace.hovertemplate = f"<b>%{{text}}</b><br>体力: {trace.name}<extra></extra>"
+
+# マーカーとテキストの見た目調整
 fig.update_traces(
-    # %{hovertext} は hover_name に指定した値（処方名）を表示します
-    # <extra></extra> をつけることで、横に出る「体力=実証」などのラベルを消せます
-    hovertemplate="<b>%{hovertext}</b><br>体力: %{customdata[0]}<extra></extra>",
     textposition='top center', 
     marker=dict(size=12, line=dict(width=1, color='black')),
     textfont=dict(family="HiraKakuPro-W3")
