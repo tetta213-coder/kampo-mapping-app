@@ -7,14 +7,29 @@ import plotly.express as px
 # 1. ページ基本設定
 st.set_page_config(page_title="漢方マッピング・ラボ", layout="wide")
 
-# --- 【強制ライトモード】ダークモードの人でも白背景で固定 ---
+# --- 【修正】「？」ボタンを隠さない、優しいライトモード設定 ---
 st.markdown("""
     <style>
-    [data-testid="stAppViewContainer"] { background-color: white !important; color: black !important; }
-    [data-testid="stHeader"] { background-color: white !important; }
-    [data-testid="stSidebar"] { background-color: #f0f2f6 !important; }
-    h1, h2, h3, p, span, label { color: black !important; }
-    .stMarkdown p { color: black !important; }
+    /* 背景を白、基本の文字を黒に */
+    .stApp {
+        background-color: white;
+    }
+    .stApp header {
+        background-color: white;
+    }
+    /* 全体のフォントカラーを黒に（アイコン要素を除外） */
+    .stApp p, .stApp h1, .stApp h2, .stApp h3, .stApp label {
+        color: #31333F !important; /* Streamlit標準の濃いグレー */
+    }
+    /* サイドバーの背景色を少しグレーに */
+    [data-testid="stSidebar"] {
+        background-color: #f0f2f6;
+    }
+    /* はてなボタン（Tooltip）が消えないように個別に色を維持 */
+    .stTooltipIcon {
+        color: #31333F !important;
+        visibility: visible !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -24,60 +39,48 @@ st.write("生薬の組み合わせから、処方同士の「近さ」を AI が
 # 2. データの読み込み
 @st.cache_data
 def load_data():
-    df = pd.read_csv("dose_shouyaku_standardized.csv")
-    return df
+    return pd.read_csv("dose_shouyaku_standardized.csv")
 
 df = load_data()
 
-# 3. サイドバーの設定（？ボタン/ヘルプをすべて復活）
+# 3. サイドバーの設定
 st.sidebar.header("🛠 マップの表示調整")
 
-# --- 1. 保険適用によるフィルタリング ---
+# 1. 保険適用
 ng_filter = st.sidebar.radio(
     "1. 解析対象の範囲",
     ["すべての処方（保険外を含む）", "保険適用148処方のみ"],
     index=1,
-    help="日本の医療保険制度で認められている主要な148処方に絞るか、それ以外の処方も含めて全体像を見るかを選択します。NG列が0のものを148処方として扱います。"
+    help="日本の医療保険制度で認められている主要な148処方に絞るか、それ以外の処方も含めて全体像を見るかを選択します。"
 )
 
-# --- 2. 注目症状フィルター ---
-symptom_dict = {
-    "すべて": "すべて",
-    "GI (胃腸)": "Flag_GI",
-    "Resp (呼吸器)": "Flag_Resp",
-    "Pain (痛み)": "Flag_Pain",
-    "Mental (精神)": "Flag_Mental"
-}
+# 2. 注目症状
+symptom_dict = {"すべて": "すべて", "GI (胃腸)": "Flag_GI", "Resp (呼吸器)": "Flag_Resp", "Pain (痛み)": "Flag_Pain", "Mental (精神)": "Flag_Mental"}
 selected_label = st.sidebar.selectbox(
     "2. 注目したい症状",
     list(symptom_dict.keys()),
     help="特定の症状に効く処方だけに絞り込んで、その中での分布を詳しく見ることができます。"
 )
 
-# --- 3. Perplexity（地図の描き込み度） ---
+# 3. Perplexity
 perplexity = st.sidebar.slider(
     "3. 地図の描き込み度 (Perplexity)",
-    min_value=5,
-    max_value=50,
-    value=25,
+    min_value=5, max_value=50, value=25,
     help="【小さい値】近所の処方同士の集まりを重視します。\n【大きい値】地図全体のバランス（大局的な位置関係）を重視します。"
 )
 
-# --- 4. 地図の向き・角度 (Seed) ---
+# 4. Seed
 seed = st.sidebar.number_input(
     "4. 地図の向き・角度 (Seed)",
     value=42,
-    help="AIが地図を描き始める『最初のきっかけ』の数字です。この数字を変えると、地図が回転したり反転したりしますが、処方同士の関係性自体は変わりません。見えにくい時に数字を変えてみてください。"
+    help="AIが地図を描き始める『最初のきっかけ』の数字です。この数字を変えると地図が回転したり反転したりしますが、処方同士の関係性自体は変わりません。"
 )
 
-# --- 5. マップの高さ調整（MacBook Air対策） ---
+# 5. 高さ
 plot_height = st.sidebar.slider(
     "5. 地図の高さ (縦幅の調整)",
-    min_value=400,
-    max_value=1200,
-    value=700,
-    step=50,
-    help="MacBook Airなどの小さな画面では、数字を小さく（600程度に）すると地図全体が見やすくなります。"
+    min_value=400, max_value=1200, value=700, step=50,
+    help="MacBook Airなどの小さな画面では、数字を小さくすると地図全体が見やすくなります。"
 )
 
 # --- 4. データのフィルタリング処理 ---
@@ -92,7 +95,6 @@ if selected_label != "すべて":
     if col_name in plot_df.columns:
         plot_df = plot_df[plot_df[col_name] > 0]
 
-# 件数表示
 st.sidebar.markdown(f"--- \n📊 現在の表示: **{len(plot_df)}** 処方")
 
 # --- 5. 体力判定とt-SNE計算 ---
@@ -113,20 +115,12 @@ res = tsne.fit_transform(numeric_data)
 plot_df['x'] = res[:, 0]
 plot_df['y'] = res[:, 1]
 
-# --- 6. Plotlyによる描画（背景とホバーの最適化） ---
+# --- 6. Plotlyによる描画 ---
 fig = px.scatter(
     plot_df, x='x', y='y',
-    text='formula', 
-    color='証（体力）',
-    color_discrete_map={
-        "実証（体力あり）": "#000000",
-        "中間": "#808080",
-        "虚証（体力控えめ）": "#FFFFFF",
-        "不明": "#D3D3D3"
-    },
-    hover_name='formula',
-    custom_data=['証（体力）'],
-    height=plot_height
+    text='formula', color='証（体力）',
+    color_discrete_map={"実証（体力あり）": "#000000", "中間": "#808080", "虚証（体力控えめ）": "#FFFFFF", "不明": "#D3D3D3"},
+    hover_name='formula', custom_data=['証（体力）'], height=plot_height
 )
 
 fig.update_traces(
@@ -138,10 +132,8 @@ fig.update_traces(
 
 fig.update_layout(
     margin=dict(l=10, r=10, t=40, b=10),
-    xaxis=dict(visible=False),
-    yaxis=dict(visible=False),
-    plot_bgcolor='white',
-    paper_bgcolor='white',
+    xaxis=dict(visible=False), yaxis=dict(visible=False),
+    plot_bgcolor='white', paper_bgcolor='white',
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="black"))
 )
 
