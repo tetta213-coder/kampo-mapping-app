@@ -17,20 +17,34 @@ def load_data():
 
 df = load_data()
 
-# 2. サイドバーの設定
+# --- 2. サイドバーの設定 ---
 st.sidebar.header("🔍 解析設定")
+
+# 【追加】NG処方のフィルタリング
+ng_filter = st.sidebar.radio(
+    "NG処方の扱い",
+    ["すべて表示", "NG処方を除外"],
+    index=1  # デフォルトで「除外」を選択状態にする場合は1、表示なら0
+)
+
+# 症状フィルター
 symptom_options = ["すべて", "GI (胃腸)", "Resp (呼吸器)", "Pain (痛み)", "Mental (精神)"]
 selected_symp = st.sidebar.selectbox("ターゲット症状で絞り込む", symptom_options)
-perplexity = st.sidebar.slider("Perplexity (近傍の意識度)", 5, 50, 25)
-seed = st.sidebar.number_input("乱数シード (配置を変える)", value=42)
 
-# 3. データのフィルタリング
+# --- 3. データのフィルタリング ---
 plot_df = df.copy()
+
+# 【追加】NG列によるフィルタリング
+if ng_filter == "NG処方を除外":
+    if 'NG' in plot_df.columns:
+        plot_df = plot_df[plot_df['NG'] == 0]
+
+# 既存の症状フィルター
 if selected_symp != "すべて":
     col_name = f"Flag_{selected_symp.split(' ')[0]}"
     if col_name in plot_df.columns:
         plot_df = plot_df[plot_df[col_name] > 0]
-
+        
 # 4. 体力判定列の作成（確実に存在する列から作成）
 def judge_strength(row):
     if row['Flag_Strength_High'] > 0: return "実証"
