@@ -68,6 +68,7 @@ fig = px.scatter(
     hover_data={
         'x': False, 
         'y': False, 
+        'formula': False, # ★ここをFalseにすることで "formula=..." の表示が消えます
         '体力': True
     },
     height=700
