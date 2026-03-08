@@ -53,9 +53,9 @@ plot_df['y'] = res[:, 1]
 # 体力判定（色分け用）
 plot_df['体力'] = plot_df['Flag_Strength_High'].apply(lambda x: "実証" if x > 0 else "その他")
 
-# --- 修正後のコードブロック ---
+# --- 修正後のコード（ここから） ---
 
-# 体力の判定ロジックを3段階に更新
+# 4. 体力の判定ロジック（確実に存在する列を使用）
 def judge_strength(row):
     if row['Flag_Strength_High'] > 0: return "実証"
     if row['Flag_Strength_Mid'] > 0: return "中間"
@@ -69,7 +69,6 @@ fig = px.scatter(
     plot_df, x='x', y='y',
     text='formula',
     color='体力',
-    # 'color_manual' を 'color_discrete_map' に修正
     color_discrete_map={
         "実証": "black", 
         "中間": "grey", 
@@ -77,16 +76,23 @@ fig = px.scatter(
         "不明": "transparent"
     },
     hover_name='formula',
-    hover_data={'x':False, 'y':False, 'Indication_Text':True, '体力':True},
+    # 'Indication_Text' を削除し、存在する列だけにする
+    hover_data={
+        'x': False, 
+        'y': False, 
+        '体力': True,
+        'Flag_GI': True,     # 消化器フラグなど、見たいものを追加
+        'Flag_Resp': True    # 呼吸器フラグ
+    },
     height=700
 )
 
-# 白丸（虚証）が背景に溶けないよう、黒い枠線を太めにつける
+# 見た目の調整
 fig.update_traces(
     textposition='top center', 
     marker=dict(size=12, line=dict(width=1, color='black'))
 )
-
+# --- 修正後のコード（ここまで） ---
 fig.update_traces(textposition='top center', marker=dict(size=10, line=dict(width=1, color='DarkSlateGrey')))
 fig.update_layout(dragmode='pan') # 初期設定を「パン（移動）」にする
 
