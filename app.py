@@ -33,7 +33,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🌿 漢方処方知恵の地図（安定版）")
+st.title("🌿 漢方処方知恵の地図")
 st.write("生薬の組み合わせから、処方同士の「近さ」を AI が計算して地図にしました。")
 
 # 2. データの読み込み
